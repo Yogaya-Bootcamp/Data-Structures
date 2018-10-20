@@ -1,6 +1,7 @@
 #include <iostream>
 #include <queue>
 #include <stack>
+#include <vector>
 using namespace std;
 
 struct Node {
@@ -30,18 +31,21 @@ int height(struct Node* node) {
 }
 
 // Given a binary tree, print its nodes in preorder
-void printPreorder(struct Node* node) {
+vector<string> preorder(struct Node* node, vector<string> & output) {
 	if (node == NULL)
-		return;
+		return output;
 	
 	// first print the data of node
-	cout << node->data << " ";
+	// cout << node->data << " ";
+	output.push_back(node->data);
 
 	// then recur on left subtree
-	printPreorder(node->left);
+	preorder(node->left, output);
 
 	// now recur on right subtree
-	printPreorder(node->right);
+	preorder(node->right, output);
+
+	return output;
 }
 
 // Given a binary tree, print its nodes in inorder
@@ -159,34 +163,131 @@ struct Node* createTree(struct Node *node, char* arr[], int n, int i) {
 		return NULL;
 }
 
-int main(int argv, char* argc[]) {
-	struct Node *root = NULL;
-	char* arr[argv-1];
-	for(int i = 0; i < argv-1; i++)
-		arr[i] = argc[i+1];
+// BST: Search a given key in a given BST
+struct Node* search(struct Node* root, string key) {
+	// Base cases: root is null or key is present at root
+	if (root == NULL || root->data == key)
+		return root;	
 
-	root = createTree(root, arr, argv - 1, 0);
+	// Key is greater than root's key
+	if (root->data < key)
+		return search(root->right, key);
+
+	// Key is smaller than root's key
+	return search(root->left, key);
+}
+
+// BST: Insert a new node with given key in BST
+struct Node* insert(struct Node* node, char * key) {
+	// if the tree is empty, return a new node
+	if (node == NULL)
+		return new Node(key);
+
+	// otherwise, recurse down the tree
+	if (strncmp(key, node->data, 10) < 0)
+		node->left = insert(node->left, key);
+	else if (strncmp(key, node->data, 10) > 0)
+		node->right = insert(node->right, key);
 	
-	cout << "Height of the tree: " << height(root);
-	cout << endl << "LevelOrder: ";
+	return node;
+}
 
-	printLevelorder(root);
-	cout << endl << "LevelOrder Using Queue: ";
+// Given a non-empty BST, return the node with minimum key value found in that tree. Note that the entire tree does not need to be searched.
+struct Node * minValueNode(struct Node* node) {
+	struct Node* current = node;
+
+	// loop down to find the leftmost leaf
+	while (current->left != NULL)
+		current = current->left;
+
+	return current;
+}
+
+// Given a BST and a key, this function deletes the key and returns the new root
+struct Node* deleteNode(struct Node *root, char* key) {
+	// base case
+	if (root == NULL)
+		return root;
+
+	// If the key to be deleted is smaller than the root's data, then it lies in left subtree
+	if (strncmp(key,  root->data, 10) < 0)
+		root->left = deleteNode(root->left, key);
+
+	// If the key to be deleted is greater than the root's data, then it lies in right subtree
+	else if (strncmp(key,  root->data, 10) > 0)
+		root->right = deleteNode(root->right, key);
+
+	// if key is same as the root's data, then this is the node to be deleted
+	else {
+		// node with only one child or no child
+		if (root->left == NULL) {
+			struct Node *temp = root->right;
+			free(root);
+			return temp;
+		}
+		else if (root->right == NULL) {
+			struct Node *temp = root->left;
+			free(root);
+			return temp;
+		}
+
+		// Node with two children: Get the inorder successor (smallest) in right subtree
+		struct Node* temp = minValueNode(root->right);
+		
+		// Copy the inorder successor's content to this Node
+		root->data = temp->data;
+
+		// Delete the inorder successor
+		root->right = deleteNode(root->right, temp->data);		
+	}
+
+	return root;
+}
+
+void printHeightAndTraversals(struct Node* root) {
+	cout << "Height of the tree: " << height(root);
+	
+	cout << endl << "LevelOrder: ";
 	printLevelorderUsingQueue(root);
 
 	cout << endl << "PreOrder: ";	
-	
-	printPreorder(root);
+	vector<string> preorderOutput;
+	preorderOutput  = preorder(root, preorderOutput);
+	for (int i = 0; i < preorderOutput.size(); i++)
+		cout << preorderOutput[i] << " ";
+
 	cout << endl << "InOrder: ";
-
 	printInorder(root);
-	cout << endl << "InOrder Using Stack: ";
-	printInorderUsingStack(root);
 
-	cout << endl << "PostOrder: ";
-	
+	cout << endl << "PostOrder: ";	
 	printPostorder(root);
+	cout << endl;	
+}
+
+int main(int argv, char* argc[]) {
+	struct Node *root = NULL;
+	
+	// insert - construct BST from input elements
+	for(int i = 0; i < argv-2; i++)
+		root = insert(root, argc[i + 1]);	
+	
+	printHeightAndTraversals(root);
+		
+	// search/delete key
+	string key = argc[argv-1];
+
+	struct Node* matchedNode = search(root, key);
+	if(matchedNode != NULL)
+		cout << "\nKey is present.";
+	else
+		cout << "\nKey is not present.";
+	
 	cout << endl;
+
+	// delete key from BST
+	char *delKey = "60";
+	root = deleteNode(root, delKey);
+	printHeightAndTraversals(root);
 	
 	return 0;
 }
